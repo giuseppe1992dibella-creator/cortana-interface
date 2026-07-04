@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cortana Interface v3.9</title>
     
-    <!-- CSP ULTRA-PERMISSIVA PER IL PROTOTIPO: Sblocca qualsiasi chiamata a Google, ElevenLabs e file Blob 3D -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob: 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https: blob: data:;">
 
     <!-- Motore grafico per i file .GLB -->
@@ -58,7 +57,6 @@
 </div>
 
 <script>
-    // Caricamento sicuro del file 3D
     document.getElementById('file-input').addEventListener('change', function(event) {
         const file = event.target.files[0];
         if (file) {
@@ -85,20 +83,28 @@
         const promptFuso = `Tu sei Cortana di Halo, l'IA tattica di supporto dell'utente. Sei militare, leale e ironica. Rispondi in italiano in modo breve e conciso: ${textInput}`;
 
         try {
-            // Endpoint pulito e verificato v1beta
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${keyInput}`, {
+            // Aggiornato all'endpoint v1 e al modello stabile corrente per evitare il 404
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${keyInput}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ contents: [{ parts: [{ text: promptFuso }] }] })
             });
 
             if (!res.ok) {
-                const errData = await res.json().catch(() => ({}));
-                console.error("Dettagli errore Google:", errData);
-                throw new Error("Risposta KO dal server Google. Controlla che la chiave sia corretta e senza spazi.");
+                // Tentativo di ripiego (fallback) con il secondo identificativo stabile se il primo fallisce
+                console.log("Tentativo con modello alternativo...");
+                const fallbackRes = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key=${keyInput}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: promptFuso }] }] })
+                });
+                
+                if (!fallbackRes.ok) throw new Error("Risposta KO dal server Google su tutti i modelli disponibili.");
+                var data = await fallbackRes.json();
+            } else {
+                var data = await res.json();
             }
 
-            const data = await res.json();
             const testoRisposta = data.candidates[0].content.parts[0].text;
             resDiv.innerHTML = "<b>Cortana:</b> " + testoRisposta;
             document.getElementById('prompt').value = "";
