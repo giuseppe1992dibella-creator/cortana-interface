@@ -7,6 +7,7 @@
     
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob: 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https: blob: data:;">
 
+    <!-- Motore grafico per i file .GLB -->
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
     
     <style>
@@ -40,12 +41,6 @@
         <input type="password" id="api-key" placeholder="Incolla qui la tua API Key di Gemini...">
     </div>
 
-    <div class="section">
-        <div class="section-title">Parametri Vocali Neurali (ElevenLabs)</div>
-        <input type="password" id="eleven-key" placeholder="Inserisci ElevenLabs API Key...">
-        <input type="text" id="voice-id" placeholder="Inserisci Voice ID...">
-    </div>
-
     <input type="file" id="file-input" accept=".glb">
     <button type="button" id="btn-glb" onclick="document.getElementById('file-input').click()">Carica Modello .GLB</button>
     
@@ -56,6 +51,11 @@
 </div>
 
 <script>
+    // Inizializzazione per caricare le voci del browser in background
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.getVoices();
+    }
+
     document.getElementById('file-input').addEventListener('change', function(event) {
         const file = event.target.files[0];
         if (file) {
@@ -66,8 +66,6 @@
 
     async function inviaTrasmissione() {
         const keyInput = document.getElementById('api-key').value.trim();
-        const elKeyInput = document.getElementById('eleven-key').value.trim();
-        const voiceIdInput = document.getElementById('voice-id').value.trim();
         const textInput = document.getElementById('prompt').value.trim();
         const resDiv = document.getElementById('response');
 
@@ -79,7 +77,7 @@
         resDiv.classList.remove('error');
         resDiv.innerHTML = "<b>Cortana:</b> <i>Elaborazione in corso...</i>";
 
-        const promptFuso = `Tu sei Cortana di Halo, l'IA tattica di supporto dell'utente. Sei militare, leale e ironica. Rispondi in italiano in modo breve e conciso: ${textInput}`;
+        const promptFuso = `Tu sei Cortana di Halo, l'IA tattica di supporto dell'utente. Sei militare, leale e ironica. Rispondi in italiano in modo breve e conciso (massimo due frasi): ${textInput}`;
 
         try {
             const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${keyInput}`, {
@@ -104,37 +102,33 @@
             resDiv.innerHTML = "<b>Cortana:</b> " + testoRisposta;
             document.getElementById('prompt').value = "";
 
-            // SEZIONE VOCE ELEVENLABS CORRETTA E ISOLATA
-            if (elKeyInput && voiceIdInput) {
-                resDiv.innerHTML += "<br><small style='color:#00ffff;'>[Generazione voce...]</small>";
-                
-                // Costruzione URL pulita senza unire le chiavi nell'indirizzo
-                const ttsUrl = `https://api.elevenlabs.io/v1/text-to-speech/${voiceIdInput}`;
-                
-                const ttsRes = await fetch(ttsUrl, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json', 
-                        'xi-api-key': elKeyInput 
-                    },
-                    body: JSON.stringify({
-                        text: testoRisposta,
-                        model_id: "eleven_multilingual_v2",
-                        voice_settings: { stability: 0.5, similarity_boost: 0.75 }
-                    })
-                });
+            // MOTORINO VOCALE NATIVO (GRATIS E ILLIMITATO)
+            if ('speechSynthesis' in window) {
+                // Ferma eventuali riproduzioni precedenti rimaste in coda
+                window.speechSynthesis.cancel();
 
-                if (ttsRes.ok) {
-                    const audioBlob = await ttsRes.blob();
-                    const audio = new Audio(URL.createObjectURL(audioBlob));
-                    await audio.play();
-                    resDiv.innerHTML = "<b>Cortana:</b> " + testoRisposta + "<br><small style='color:#00ff00;'>[Audio trasmesso con successo]</small>";
-                } else {
-                    const ttsErr = await ttsRes.json().catch(() => ({}));
-                    console.error("Dettagli Errore ElevenLabs:", ttsErr);
-                    resDiv.innerHTML += `<br><span class='error'><small>[Errore Voce ElevenLabs: ${ttsRes.status} - Controlla se il Voice ID è valido nel tuo profilo]</small></span>`;
+                const utterance = new SpeechSynthesisUtterance(testoRisposta);
+                utterance.lang = 'it-IT';
+                utterance.rate = 1.0;  // Velocità normale
+                utterance.pitch = 1.0; // Tonalità normale
+
+                // Cerca una voce di sistema in italiano (preferibilmente femminile)
+                const voices = window.speechSynthesis.getVoices();
+                const voceSelezionata = voices.find(v => v.lang.includes('it') && 
+                    (v.name.toLowerCase().includes('elsa') || 
+                     v.name.toLowerCase().includes('cosmo') || 
+                     v.name.toLowerCase().includes('zira') || 
+                     v.name.toLowerCase().includes('google') || 
+                     v.name.toLowerCase().includes('microsoft'))) || voices.find(v => v.lang.includes('it'));
+
+                if (voceSelezionata) {
+                    utterance.voice = voceSelezionata;
                 }
+
+                window.speechSynthesis.speak(utterance);
+                resDiv.innerHTML += "<br><small style='color:#00ff00;'>[Audio riprodotto via sistema locale]</small>";
             }
+
         } catch (error) {
             console.error(error);
             resDiv.classList.add('error');
