@@ -2,149 +2,183 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Cortana Interface v3.9 - Direct Connection</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cortana Interface v3.9</title>
     <style>
-        body { margin: 0; background: #000; color: #00ffff; font-family: monospace; overflow: hidden; }
-        #canvas-container { width: 100vw; height: 100vh; position: absolute; top:0; left:0; z-index: 1; }
-        #ui { position: absolute; top: 20px; left: 20px; width: 360px; background: rgba(0,20,40,0.85); padding: 15px; border: 1px solid #00ffff; z-index: 10; border-radius: 5px; box-shadow: 0 0 15px rgba(0,255,255,0.3); }
-        input, button { width: 100%; margin-top: 10px; background: #001122; border: 1px solid #00ffff; color: #00ffff; padding: 10px; font-family: monospace; box-sizing: border-box; }
-        button:hover { background: #003366; cursor: pointer; box-shadow: 0 0 8px #00ffff; }
-        #response { margin-top:15px; font-size: 13px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; color: #ccffff; }
-        .config-box { border: 1px dashed #005555; padding: 10px; margin-top: 5px; background: rgba(0,10,20,0.5); }
-        .title-config { font-size: 11px; color: #00aaaa; margin-bottom: 2px; }
+        body {
+            background-color: #050505;
+            color: #00ffff;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            border: 2px solid #00ffff;
+            padding: 20px;
+            background-color: #0a0a0a;
+            box-shadow: 0 0 15px #00ffff;
+            width: 90%;
+            max-width: 500px;
+            box-sizing: border-box;
+        }
+        h2 {
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 0;
+            border-bottom: 1px dashed #00ffff;
+            padding-bottom: 10px;
+        }
+        .section {
+            border: 1px dotted #00ffff;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        .section-title {
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        input, textarea, button {
+            width: 100%;
+            background-color: #000;
+            border: 1px solid #00ffff;
+            color: #00ffff;
+            padding: 10px;
+            margin-bottom: 5px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            background-color: #051a1a;
+        }
+        button {
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #00ffff;
+            color: #000;
+        }
+        #response {
+            margin-top: 15px;
+            padding: 10px;
+            border: 1px solid #00ffff;
+            min-height: 50px;
+            background-color: #000;
+            white-space: pre-wrap;
+        }
+        .error {
+            color: #ff3333 !important;
+            border-color: #ff3333 !important;
+        }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
-    <div id="canvas-container"></div>
-    <div id="ui">
-        <h3>CORTANA SYSTEM v3.9</h3>
-        
-        <div class="config-box">
-            <div class="title-config">PARAMETRI COGNITIVI (GEMINI)</div>
-            <input type="text" id="api-key" placeholder="Incolla Gemini API Key (AQ...)">
-        </div>
 
-        <div class="config-box">
-            <div class="title-config">PARAMETRI VOCALI NEURALI (ELEVENLABS)</div>
-            <input type="text" id="eleven-key" placeholder="Incolla ElevenLabs API Key">
-            <input type="text" id="voice-id" placeholder="Incolla Voice ID di Cornelia">
-        </div>
-
-        <button onclick="document.getElementById('file-input').click()">CARICA MODELLO .GLB</button>
-        <input type="file" id="file-input" style="display:none" accept=".glb">
-        <input type="text" id="prompt" placeholder="Invia un messaggio tattico..." onkeypress="if(event.key==='Enter') send()">
-        <button onclick="send()">INVIA TRASMISSIONE</button>
-        <div id="response">Status: Sistema v3.9 pronto.</div>
+<div class="container">
+    <h2>Cortana System v3.9</h2>
+    
+    <div class="section">
+        <div class="section-title">Parametri Cognitivi (Gemini)</div>
+        <input type="password" id="api-key" placeholder="Inserisci la tua API Key di Gemini...">
     </div>
 
-    <script>
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x00020a);
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.01, 10000);
-        camera.position.set(0, 0, 5);
-        const renderer = new THREE.WebGLRenderer({antialias: true});
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.getElementById('canvas-container').appendChild(renderer.domElement);
-        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    <div class="section">
+        <div class="section-title">Parametri Vocali Neurali (ElevenLabs)</div>
+        <input type="password" id="eleven-key" placeholder="Inserisci ElevenLabs API Key (Opzionale)...">
+        <input type="text" id="voice-id" placeholder="Inserisci Voice ID (Opzionale)...">
+    </div>
 
-        let cortana;
-        const loader = new THREE.GLTFLoader();
+    <button type="button" id="btn-glb">Carica Modello .GLB</button>
+    
+    <textarea id="prompt" rows="3" placeholder="Invia un messaggio tattico..."></textarea>
+    
+    <button type="button" id="btn-invia" onclick="inviaTrasmissione()">Invia Trasmissione</button>
 
-        document.getElementById('file-input').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                loader.parse(event.target.result, '', (gltf) => {
-                    if(cortana) scene.remove(cortana);
-                    cortana = gltf.scene;
-                    const box = new THREE.Box3().setFromObject(cortana);
-                    const size = box.getSize(new THREE.Vector3());
-                    const center = box.getCenter(new THREE.Vector3());
-                    cortana.position.x += (cortana.position.x - center.x);
-                    cortana.position.y += (cortana.position.y - center.y);
-                    cortana.position.z += (cortana.position.z - center.z);
-                    camera.position.set(0, 0, Math.max(size.x, size.y, size.z) * 1.5);
-                    camera.lookAt(0, 0, 0);
-                    controls.target.set(0, 0, 0);
-                    controls.update();
-                    scene.add(cortana);
-                    document.getElementById('response').innerText = "Status: Ologramma pronto.";
-                });
-            };
-            reader.readAsArrayBuffer(file);
-        });
+    <div id="response">In attesa di ordini...</div>
+</div>
 
-        const ambientLight = new THREE.AmbientLight(0x0a2540, 2.5);
-        scene.add(ambientLight);
-        const dirLight = new THREE.DirectionalLight(0x00ffff, 2);
-        dirLight.position.set(5, 10, 7);
-        scene.add(dirLight);
+<script>
+    async function inviaTrasmissione() {
+        const keyInput = document.getElementById('api-key').value.trim();
+        const elKeyInput = document.getElementById('eleven-key').value.trim();
+        const voiceIdInput = document.getElementById('voice-id').value.trim();
+        const textInput = document.getElementById('prompt').value.trim();
+        const resDiv = document.getElementById('response');
 
-        function animate() { requestAnimationFrame(animate); if(cortana) cortana.rotation.y += 0.003; controls.update(); renderer.render(scene, camera); }
-        animate();
+        if (!keyInput || !textInput) {
+            resDiv.innerHTML = "<span class='error'>Errore: Chiave API e Messaggio sono obbligatori!</span>";
+            return;
+        }
 
-        async function send() {
-            const keyInput = document.getElementById('api-key').value.trim();
-            const elKeyInput = document.getElementById('eleven-key').value.trim();
-            const voiceIdInput = document.getElementById('voice-id').value.trim();
-            const textInput = document.getElementById('prompt').value.trim();
-            const resDiv = document.getElementById('response');
-            
-            if(!keyInput || !textInput) return;
-            resDiv.innerHTML = "<b>Cortana:</b> <i>Elaborazione in corso...</i>";
-            document.getElementById('prompt').value = "";
+        resDiv.classList.remove('error');
+        resDiv.innerHTML = "<b>Cortana:</b> <i>Elaborazione in corso...</i>";
+        document.getElementById('prompt').value = "";
 
-            const promptFuso = `Tu sei Cortana di Halo, l'IA tattica di supporto dell'utente. Sei militare, leale e ironica. Rispondi in italiano in modo breve, massimo due frasi, a: ${textInput}`;
-            
-           try {
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${keyInput}`, {
+        const promptFuso = `Tu sei Cortana di Halo, l'IA tattica di supporto dell'utente. Sei militare, leale e ironica. Rispondi in italiano in modo breve e conciso al seguente messaggio: ${textInput}`;
+
+        try {
+            // Chiamata ufficiale a Gemini con endpoint v1beta corretto e variabile allineata
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${keyInput}`, {
                 method: 'POST',
                 mode: 'cors',
-                headers: {'Content-Type': 'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ contents: [{ parts: [{ text: promptFuso }] }] })
+            });
+
+            if (!res.ok) throw new Error("Risposta KO dal server Google");
+
+            const data = await res.json();
+            const testoRisposta = data.candidates[0].content.parts[0].text;
+            resDiv.innerHTML = "<b>Cortana:</b> " + testoRisposta;
+
+            // Se sono presenti i dati per ElevenLabs, avvia la sintesi vocale
+            if (elKeyInput && voiceIdInput) {
+                resDiv.innerHTML += "<br><small style='color:#00ffff;'>[Generazione voce con ElevenLabs...]</small>";
+                
+                const ttsRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceIdInput}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'xi-api-key': elKeyInput
+                    },
+                    body: JSON.stringify({
+                        text: testoRisposta,
+                        model_id: "eleven_multilingual_v2",
+                        voice_settings: { stability: 0.5, similarity_boost: 0.75 }
+                    })
                 });
 
-                if(!res.ok) throw new Error("Risposta KO");
-
-                const data = await res.json();
-                const testoRisposta = data.candidates[0].content.parts[0].text;
-                resDiv.innerHTML = "<b>Cortana:</b> " + testoRisposta;
-
-                if (elKeyInput && voiceIdInput) {
-                    resDiv.innerHTML = "<b>Cortana:</b> " + testoRisposta + "<br><small style='color:#00ffff;'>[Generazione voce con Cornelia...]</small>";
-                    
-                    const ttsRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceIdInput}`, {
-                        method: 'POST',
-                        mode: 'cors',
-                        headers: { 'Content-Type': 'application/json', 'xi-api-key': elKeyInput },
-                        body: JSON.stringify({
-                            text: testoRisposta.trim(),
-                            model_id: "eleven_multilingual_v2",
-                            voice_settings: { stability: 0.5, similarity_boost: 0.75 }
-                        })
-                    });
-
-                    if (ttsRes.ok) {
-                        const audioBlob = await ttsRes.blob();
-                        const audio = new Audio(URL.createObjectURL(audioBlob));
-                        resDiv.innerHTML = "<b>Cortana:</b> " + testoRisposta;
-                        audio.play();
-                        return;
-                    }
+                if (ttsRes.ok) {
+                    const audioBlob = await ttsRes.blob();
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    const audio = new Audio(audioUrl);
+                    audio.play();
+                } else {
+                    resDiv.innerHTML += "<br><span class='error'><small>[Errore sintesi vocale ElevenLabs]</small></span>";
                 }
-
-                const speech = new SpeechSynthesisUtterance(testoRisposta);
-                speech.lang = 'it-IT';
-                window.speechSynthesis.speak(speech);
-
-            } catch(e) {
-                resDiv.innerHTML = "<span style='color:red;'>Errore di rete o chiave non abilitata. Controlla la console del browser (F12).</span>";
             }
+
+        } catch (error) {
+            console.error(error);
+            resDiv.classList.add('error');
+            resDiv.innerHTML = "Errore di rete o chiave non abilitata. Controlla la console del browser (F12).";
         }
-    </script>
+    }
+
+    // Bottone segnaposto per il modello 3D GLB
+    document.getElementById('btn-glb').addEventListener('click', () => {
+        alert('Funzionalità di caricamento modello .GLB pronta per l\'integrazione con Three.js / Model-Viewer.');
+    });
+</script>
+
 </body>
-</html> 
+</html>
