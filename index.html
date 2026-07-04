@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cortana Interface v3.9</title>
     
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https://generativelanguage.googleapis.com https://api.elevenlabs.io;">
+    <!-- CSP ULTRA-PERMISSIVA PER IL PROTOTIPO: Sblocca qualsiasi chiamata a Google, ElevenLabs e file Blob 3D -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob: 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https: blob: data:;">
 
+    <!-- Motore grafico per i file .GLB -->
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
     
     <style>
@@ -56,7 +58,7 @@
 </div>
 
 <script>
-    // Gestore del file 3D .GLB locale
+    // Caricamento sicuro del file 3D
     document.getElementById('file-input').addEventListener('change', function(event) {
         const file = event.target.files[0];
         if (file) {
@@ -83,14 +85,18 @@
         const promptFuso = `Tu sei Cortana di Halo, l'IA tattica di supporto dell'utente. Sei militare, leale e ironica. Rispondi in italiano in modo breve e conciso: ${textInput}`;
 
         try {
+            // Endpoint pulito e verificato v1beta
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${keyInput}`, {
                 method: 'POST',
-                mode: 'cors',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ contents: [{ parts: [{ text: promptFuso }] }] })
             });
 
-            if (!res.ok) throw new Error("Risposta KO dal server Google");
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                console.error("Dettagli errore Google:", errData);
+                throw new Error("Risposta KO dal server Google. Controlla che la chiave sia corretta e senza spazi.");
+            }
 
             const data = await res.json();
             const testoRisposta = data.candidates[0].content.parts[0].text;
@@ -118,7 +124,7 @@
         } catch (error) {
             console.error(error);
             resDiv.classList.add('error');
-            resDiv.innerHTML = "Errore di rete o chiave non abilitata. Controlla la console (F12).";
+            resDiv.innerHTML = error.message;
         }
     }
 </script>
