@@ -100,12 +100,12 @@
 
             const promptFuso = `Tu sei Cortana di Halo, l'IA tattica di supporto dell'utente. Sei militare, leale e ironica. Rispondi in italiano in modo breve, massimo due frasi, a: ${textInput}`;
             
-            try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${keyInput}`, {
-                    method: 'POST',
-                    mode: 'cors',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ contents: [{ parts: [{ text: promptFuso }] }] })
+           try {
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${keyInput}`, {
+                method: 'POST',
+                mode: 'cors',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ contents: [{ parts: [{ text: promptFuso }] }] })
                 });
 
                 if(!res.ok) throw new Error("Risposta KO");
