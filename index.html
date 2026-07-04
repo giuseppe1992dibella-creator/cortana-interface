@@ -4,81 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cortana Interface v3.9</title>
+    
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https://generativelanguage.googleapis.com https://api.elevenlabs.io;">
+
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+    
     <style>
-        body {
-            background-color: #050505;
-            color: #00ffff;
-            font-family: 'Courier New', Courier, monospace;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-        }
-        .container {
-            border: 2px solid #00ffff;
-            padding: 20px;
-            background-color: #0a0a0a;
-            box-shadow: 0 0 15px #00ffff;
-            width: 90%;
-            max-width: 500px;
-            box-sizing: border-box;
-        }
-        h2 {
-            text-align: center;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-top: 0;
-            border-bottom: 1px dashed #00ffff;
-            padding-bottom: 10px;
-        }
-        .section {
-            border: 1px dotted #00ffff;
-            padding: 10px;
-            margin-bottom: 15px;
-        }
-        .section-title {
-            font-size: 0.8em;
-            font-weight: bold;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-        }
-        input, textarea, button {
-            width: 100%;
-            background-color: #000;
-            border: 1px solid #00ffff;
-            color: #00ffff;
-            padding: 10px;
-            margin-bottom: 5px;
-            box-sizing: border-box;
-            font-family: inherit;
-        }
-        input:focus, textarea:focus {
-            outline: none;
-            background-color: #051a1a;
-        }
-        button {
-            cursor: pointer;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-        button:hover {
-            background-color: #00ffff;
-            color: #000;
-        }
-        #response {
-            margin-top: 15px;
-            padding: 10px;
-            border: 1px solid #00ffff;
-            min-height: 50px;
-            background-color: #000;
-            white-space: pre-wrap;
-        }
-        .error {
-            color: #ff3333 !important;
-            border-color: #ff3333 !important;
-        }
+        body { background-color: #050505; color: #00ffff; font-family: 'Courier New', Courier, monospace; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .container { border: 2px solid #00ffff; padding: 20px; background-color: #0a0a0a; box-shadow: 0 0 15px #00ffff; width: 100%; max-width: 500px; box-sizing: border-box; }
+        h2 { text-align: center; text-transform: uppercase; letter-spacing: 2px; margin-top: 0; border-bottom: 1px dashed #00ffff; padding-bottom: 10px; }
+        #canvas-3d { width: 100%; height: 250px; border: 1px solid #00ffff; margin-bottom: 15px; background-color: #000; display: flex; justify-content: center; align-items: center; }
+        model-viewer { width: 100%; height: 100%; }
+        .section { border: 1px dotted #00ffff; padding: 10px; margin-bottom: 15px; }
+        .section-title { font-size: 0.8em; font-weight: bold; margin-bottom: 8px; text-transform: uppercase; }
+        input, textarea, button { width: 100%; background-color: #000; border: 1px solid #00ffff; color: #00ffff; padding: 10px; margin-bottom: 5px; box-sizing: border-box; font-family: inherit; }
+        input:focus, textarea:focus { outline: none; background-color: #051a1a; }
+        button { cursor: pointer; font-weight: bold; text-transform: uppercase; }
+        button:hover { background-color: #00ffff; color: #000; }
+        #response { margin-top: 15px; padding: 10px; border: 1px solid #00ffff; min-height: 50px; background-color: #000; white-space: pre-wrap; }
+        .error { color: #ff3333 !important; border-color: #ff3333 !important; }
+        #file-input { display: none; }
     </style>
 </head>
 <body>
@@ -86,9 +31,13 @@
 <div class="container">
     <h2>Cortana System v3.9</h2>
     
+    <div id="canvas-3d">
+        <div id="placeholder-text">Nessun modello caricato</div>
+    </div>
+    
     <div class="section">
         <div class="section-title">Parametri Cognitivi (Gemini)</div>
-        <input type="password" id="api-key" placeholder="Inserisci la tua API Key di Gemini...">
+        <input type="password" id="api-key" placeholder="Incolla qui la tua API Key di Gemini...">
     </div>
 
     <div class="section">
@@ -97,16 +46,25 @@
         <input type="text" id="voice-id" placeholder="Inserisci Voice ID (Opzionale)...">
     </div>
 
-    <button type="button" id="btn-glb">Carica Modello .GLB</button>
+    <input type="file" id="file-input" accept=".glb">
+    <button type="button" id="btn-glb" onclick="document.getElementById('file-input').click()">Carica Modello .GLB</button>
     
     <textarea id="prompt" rows="3" placeholder="Invia un messaggio tattico..."></textarea>
-    
     <button type="button" id="btn-invia" onclick="inviaTrasmissione()">Invia Trasmissione</button>
 
     <div id="response">In attesa di ordini...</div>
 </div>
 
 <script>
+    // Gestore del file 3D .GLB locale
+    document.getElementById('file-input').addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const url = URL.createObjectURL(file);
+            document.getElementById('canvas-3d').innerHTML = `<model-viewer src="${url}" camera-controls auto-rotate shadow-intensity="1"></model-viewer>`;
+        }
+    });
+
     async function inviaTrasmissione() {
         const keyInput = document.getElementById('api-key').value.trim();
         const elKeyInput = document.getElementById('eleven-key').value.trim();
@@ -115,17 +73,16 @@
         const resDiv = document.getElementById('response');
 
         if (!keyInput || !textInput) {
-            resDiv.innerHTML = "<span class='error'>Errore: Chiave API e Messaggio sono obbligatori!</span>";
+            resDiv.innerHTML = "<span class='error'>Errore: Incolla l'API Key e inserisci un messaggio!</span>";
             return;
         }
 
         resDiv.classList.remove('error');
         resDiv.innerHTML = "<b>Cortana:</b> <i>Elaborazione in corso...</i>";
 
-        const promptFuso = `Tu sei Cortana di Halo, l'IA tattica di supporto dell'utente. Sei militare, leale e ironica. Rispondi in italiano in modo breve e conciso al seguente messaggio: ${textInput}`;
+        const promptFuso = `Tu sei Cortana di Halo, l'IA tattica di supporto dell'utente. Sei militare, leale e ironica. Rispondi in italiano in modo breve e conciso: ${textInput}`;
 
         try {
-            // Chiamata a Gemini con URL completo, endpoint corretto e variabile keyInput allineata
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${keyInput}`, {
                 method: 'POST',
                 mode: 'cors',
@@ -133,7 +90,6 @@
                 body: JSON.stringify({ contents: [{ parts: [{ text: promptFuso }] }] })
             });
 
-            // Chiusura del fetch corretta (il pezzo che mancava!)
             if (!res.ok) throw new Error("Risposta KO dal server Google");
 
             const data = await res.json();
@@ -142,14 +98,10 @@
             document.getElementById('prompt').value = "";
 
             if (elKeyInput && voiceIdInput) {
-                resDiv.innerHTML += "<br><small style='color:#00ffff;'>[Generazione voce con ElevenLabs...]</small>";
-                
+                resDiv.innerHTML += "<br><small style='color:#00ffff;'>[Generazione voce...]</small>";
                 const ttsRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceIdInput}`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'xi-api-key': elKeyInput
-                    },
+                    headers: { 'Content-Type': 'application/json', 'xi-api-key': elKeyInput },
                     body: JSON.stringify({
                         text: testoRisposta,
                         model_id: "eleven_multilingual_v2",
@@ -159,27 +111,16 @@
 
                 if (ttsRes.ok) {
                     const audioBlob = await ttsRes.blob();
-                    const audioUrl = URL.createObjectURL(audioBlob);
-                    const audio = new Audio(audioUrl);
+                    const audio = new Audio(URL.createObjectURL(audioBlob));
                     audio.play();
-                } else {
-                    resDiv.innerHTML += "<br><span class='error'><small>[Errore sintesi vocale ElevenLabs]</small></span>";
                 }
             }
-
         } catch (error) {
             console.error(error);
             resDiv.classList.add('error');
-            resDiv.innerHTML = "Errore di rete o chiave non abilitata. Controlla la console del browser (F12).";
+            resDiv.innerHTML = "Errore di rete o chiave non abilitata. Controlla la console (F12).";
         }
     }
-
-    // Mantieni qui sotto il TUO script originale per la gestione del file .GLB 
-    // che avevi scritto per muovere o caricare il modello 3D
-    document.getElementById('btn-glb').addEventListener('click', () => {
-        // Il tuo codice originale per il motore grafico va qui
-    });
 </script>
-
 </body>
 </html>
