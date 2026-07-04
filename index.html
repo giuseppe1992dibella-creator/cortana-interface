@@ -1,4 +1,98 @@
-async function inviaTrasmissione() {
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cortana Interface v4.6</title>
+    
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob: 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https: blob: data:;">
+
+    <!-- Motore grafico per i file .GLB -->
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+    
+    <style>
+        body { background-color: #050505; color: #00ffff; font-family: 'Courier New', Courier, monospace; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .container { border: 2px solid #00ffff; padding: 20px; background-color: #0a0a0a; box-shadow: 0 0 15px #00ffff; width: 100%; max-width: 500px; box-sizing: border-box; }
+        h2 { text-align: center; text-transform: uppercase; letter-spacing: 2px; margin-top: 0; border-bottom: 1px dashed #00ffff; padding-bottom: 10px; }
+        #canvas-3d { width: 100%; height: 300px; border: 1px solid #00ffff; margin-bottom: 15px; background-color: #000; display: flex; justify-content: center; align-items: center; }
+        model-viewer { width: 100%; height: 100%; }
+        .section { border: 1px dotted #00ffff; padding: 10px; margin-bottom: 15px; }
+        .section-title { font-size: 0.8em; font-weight: bold; margin-bottom: 8px; text-transform: uppercase; }
+        input, textarea, button { width: 100%; background-color: #000; border: 1px solid #00ffff; color: #00ffff; padding: 10px; margin-bottom: 5px; box-sizing: border-box; font-family: inherit; }
+        input:focus, textarea:focus { outline: none; background-color: #051a1a; }
+        button { cursor: pointer; font-weight: bold; text-transform: uppercase; }
+        button:hover { background-color: #00ffff; color: #000; }
+        #response { margin-top: 15px; padding: 10px; border: 1px solid #00ffff; min-height: 50px; background-color: #000; white-space: pre-wrap; }
+        .error { color: #ff3333 !important; border-color: #ff3333 !important; }
+        #file-input { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Cortana System v4.6</h2>
+    
+    <div id="canvas-3d">
+        <div id="placeholder-text">Nessun modello caricato</div>
+    </div>
+    
+    <div class="section">
+        <div class="section-title">Parametri Cognitivi (Gemini)</div>
+        <input type="password" id="api-key" placeholder="Incolla qui la tua API Key di Gemini...">
+    </div>
+
+    <input type="file" id="file-input" accept=".glb">
+    <button type="button" id="btn-glb" onclick="document.getElementById('file-input').click()">Carica Modello .GLB</button>
+    
+    <textarea id="prompt" rows="3" placeholder="Invia un messaggio tattico..."></textarea>
+    <button type="button" id="btn-invia" onclick="inviaTrasmissione()">Invia Trasmissione</button>
+
+    <div id="response">In attesa di ordini...</div>
+</div>
+
+<script>
+    let elencoVoci = [];
+
+    // Caricamento asincrono della lista voci di sistema
+    function caricaVoci() {
+        if ('speechSynthesis' in window) {
+            elencoVoci = window.speechSynthesis.getVoices();
+        }
+    }
+    caricaVoci();
+    if ('speechSynthesis' in window && window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = caricaVoci;
+    }
+
+    // Gestione del file 3D .GLB
+    document.getElementById('file-input').addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const url = URL.createObjectURL(file);
+            
+            // Iniezione con impostazioni di esposizione bilanciate
+            document.getElementById('canvas-3d').innerHTML = `
+                <model-viewer id="cortana-avatar" src="${url}" camera-controls shadow-intensity="1" environment-image="neutral" exposure="1.0" autoplay></model-viewer>
+            `;
+
+            // Rilevamento ed esecuzione automatica dell'animazione nativa
+            const viewer = document.getElementById('cortana-avatar');
+            viewer.addEventListener('load', () => {
+                const animazioni = viewer.availableAnimations;
+                console.log("Animazioni trovate nel file:", animazioni);
+                if (animazioni && animazioni.length > 0) {
+                    viewer.animationName = animazioni[0];
+                    viewer.play();
+                } else {
+                    console.log("Nessuna animazione tracciata. Attivata rotazione.");
+                    viewer.autoRotate = true;
+                }
+            });
+        }
+    });
+
+    // Logica di invio e sintesi vocale
+    async function inviaTrasmissione() {
         const keyInput = document.getElementById('api-key').value.trim();
         const textInput = document.getElementById('prompt').value.trim();
         const resDiv = document.getElementById('response');
@@ -14,7 +108,7 @@ async function inviaTrasmissione() {
         const promptFuso = `Tu sei Cortana di Halo, l'IA tattica di supporto dell'utente. Sei militare, leale e ironica. Rispondi in italiano in modo breve (massimo due frasi): ${textInput}`;
 
         try {
-            // Utilizziamo il modello stabile standard 1.5-flash per evitare i 503 di sovraccarico
+            // Endpoint v1beta stabile per evitare sovraccarichi o errori 503
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${keyInput}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -35,17 +129,18 @@ async function inviaTrasmissione() {
                 const utterance = new SpeechSynthesisUtterance(testoRisposta);
                 utterance.lang = 'it-IT';
                 utterance.rate = 1.05; 
-                utterance.pitch = 1.25; // Alziamo il pitch per forzare una tonalità femminile anche su voci neutre
+                utterance.pitch = 1.25; // Pitch aumentato per forzare la tonalità femminile
 
-                const voices = window.speechSynthesis.getVoices();
-                // Filtro stringente per acchiappare Elsa, Alice, Google o Microsoft in italiano
-                const voceFemminile = voices.find(v => v.lang.includes('it') && 
+                if (elencoVoci.length === 0) elencoVoci = window.speechSynthesis.getVoices();
+
+                // Filtro stringente per individuare i motori vocali femminili del sistema operativo
+                const voceFemminile = elencoVoci.find(v => v.lang.includes('it') && 
                     (v.name.toLowerCase().includes('elsa') || 
                      v.name.toLowerCase().includes('alice') || 
                      v.name.toLowerCase().includes('federica') || 
-                     v.name.toLowerCase().includes('google'))) || voices.find(v => v.lang.includes('it'));
+                     v.name.toLowerCase().includes('google'))) || elencoVoci.find(v => v.lang.includes('it'));
 
-                if (voceFemminile) utterance.voice = voiceFemminile;
+                if (voceFemminile) utterance.voice = voceFemminile;
 
                 window.speechSynthesis.speak(utterance);
                 resDiv.innerHTML += "<br><small style='color:#00ff00;'>[Audio riprodotto via sistema locale]</small>";
@@ -57,3 +152,6 @@ async function inviaTrasmissione() {
             resDiv.innerHTML = `Errore di trasmissione: ${error.message}`;
         }
     }
+</script>
+</body>
+</html>
