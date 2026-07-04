@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cortana Interface v3.9</title>
+    <title>Cortana Interface v4.5</title>
     
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob: 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https: blob: data:;">
 
@@ -14,7 +14,7 @@
         body { background-color: #050505; color: #00ffff; font-family: 'Courier New', Courier, monospace; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
         .container { border: 2px solid #00ffff; padding: 20px; background-color: #0a0a0a; box-shadow: 0 0 15px #00ffff; width: 100%; max-width: 500px; box-sizing: border-box; }
         h2 { text-align: center; text-transform: uppercase; letter-spacing: 2px; margin-top: 0; border-bottom: 1px dashed #00ffff; padding-bottom: 10px; }
-        #canvas-3d { width: 100%; height: 250px; border: 1px solid #00ffff; margin-bottom: 15px; background-color: #000; display: flex; justify-content: center; align-items: center; }
+        #canvas-3d { width: 100%; height: 300px; border: 1px solid #00ffff; margin-bottom: 15px; background-color: #000; display: flex; justify-content: center; align-items: center; }
         model-viewer { width: 100%; height: 100%; }
         .section { border: 1px dotted #00ffff; padding: 10px; margin-bottom: 15px; }
         .section-title { font-size: 0.8em; font-weight: bold; margin-bottom: 8px; text-transform: uppercase; }
@@ -30,7 +30,7 @@
 <body>
 
 <div class="container">
-    <h2>Cortana System v3.9</h2>
+    <h2>Cortana System v4.5</h2>
     
     <div id="canvas-3d">
         <div id="placeholder-text">Nessun modello caricato</div>
@@ -51,16 +51,43 @@
 </div>
 
 <script>
-    // Inizializzazione per caricare le voci del browser in background
-    if ('speechSynthesis' in window) {
-        window.speechSynthesis.getVoices();
+    let elencoVoci = [];
+
+    // Funzione per caricare e mappare le voci di sistema disponibili nel browser
+    function caricaVoci() {
+        if ('speechSynthesis' in window) {
+            elencoVoci = window.speechSynthesis.getVoices();
+        }
+    }
+    caricaVoci();
+    if ('speechSynthesis' in window && window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = caricaVoci;
     }
 
     document.getElementById('file-input').addEventListener('change', function(event) {
         const file = event.target.files[0];
         if (file) {
             const url = URL.createObjectURL(file);
-            document.getElementById('canvas-3d').innerHTML = `<model-viewer src="${url}" camera-controls auto-rotate shadow-intensity="1"></model-viewer>`;
+            
+            // Iniezione del modello con impostazioni di illuminazione standard ed esposizione bilanciata per evitare l'effetto bianco
+            document.getElementById('canvas-3d').innerHTML = `
+                <model-viewer id="cortana-avatar" src="${url}" camera-controls shadow-intensity="1" environment-image="neutral" exposure="1.0" autoplay></model-viewer>
+            `;
+
+            // Rilevamento automatico delle animazioni interne al file .GLB appena caricato
+            const viewer = document.getElementById('cortana-avatar');
+            viewer.addEventListener('load', () => {
+                const animazioni = viewer.availableAnimations;
+                console.log("Animazioni trovate nel file:", animazioni);
+                if (animazioni && animazioni.length > 0) {
+                    // Imposta ed esegue la prima animazione disponibile nell'elenco
+                    viewer.animationName = animazioni[0];
+                    viewer.play();
+                } else {
+                    console.log("Nessuna animazione trovata nel file .glb. Attivata rotazione automatica di ripiego.");
+                    viewer.autoRotate = true;
+                }
+            });
         }
     });
 
@@ -77,7 +104,7 @@
         resDiv.classList.remove('error');
         resDiv.innerHTML = "<b>Cortana:</b> <i>Elaborazione in corso...</i>";
 
-        const promptFuso = `Tu sei Cortana di Halo, l'IA tattica di supporto dell'utente. Sei militare, leale e ironica. Rispondi in italiano in modo breve e conciso (massimo due frasi): ${textInput}`;
+        const promptFuso = `Tu sei Cortana di Halo, l'IA tattica di supporto dell'utente. Sei militare, leale e ironica. Rispondi in italiano in modo breve (massimo due frasi): ${textInput}`;
 
         try {
             const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${keyInput}`, {
@@ -102,27 +129,30 @@
             resDiv.innerHTML = "<b>Cortana:</b> " + testoRisposta;
             document.getElementById('prompt').value = "";
 
-            // MOTORINO VOCALE NATIVO (GRATIS E ILLIMITATO)
+            // GESTIONE VOCE LOCALE - FORZATURA FEMMINILE RIGIDA
             if ('speechSynthesis' in window) {
-                // Ferma eventuali riproduzioni precedenti rimaste in coda
-                window.speechSynthesis.cancel();
+                window.speechSynthesis.cancel(); // Interrompe code audio pendenti
 
                 const utterance = new SpeechSynthesisUtterance(testoRisposta);
                 utterance.lang = 'it-IT';
-                utterance.rate = 1.0;  // Velocità normale
-                utterance.pitch = 1.0; // Tonalità normale
+                utterance.rate = 1.05; // Velocità leggermente aumentata per renderla più fluida e naturale
+                utterance.pitch = 1.15; // Tonalità alzata per rendere femminile la frequenza della voce
 
-                // Cerca una voce di sistema in italiano (preferibilmente femminile)
-                const voices = window.speechSynthesis.getVoices();
-                const voceSelezionata = voices.find(v => v.lang.includes('it') && 
+                // Ricarica le voci per sicurezza
+                if (elencoVoci.length === 0) elencoVoci = window.speechSynthesis.getVoices();
+
+                // Algoritmo di selezione: cerca esplicitamente le varianti femminili italiane note nei vari sistemi operativi
+                let voceFemminile = elencoVoci.find(v => v.lang.includes('it') && 
                     (v.name.toLowerCase().includes('elsa') || 
-                     v.name.toLowerCase().includes('cosmo') || 
+                     v.name.toLowerCase().includes('alice') || 
+                     v.name.toLowerCase().includes('federica') || 
                      v.name.toLowerCase().includes('zira') || 
-                     v.name.toLowerCase().includes('google') || 
-                     v.name.toLowerCase().includes('microsoft'))) || voices.find(v => v.lang.includes('it'));
+                     v.name.toLowerCase().includes('cosmo'))) 
+                     || elencoVoci.find(v => v.lang.includes('it')); // Ripiego su voce italiana generica se non trova i nomi specifici
 
-                if (voceSelezionata) {
-                    utterance.voice = voceSelezionata;
+                if (voceFemminile) {
+                    utterance.voice = voceFemminile;
+                    console.log("Voce caricata:", voceFemminile.name);
                 }
 
                 window.speechSynthesis.speak(utterance);
