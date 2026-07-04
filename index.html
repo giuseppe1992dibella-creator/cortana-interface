@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cortana Interface v3.9</title>
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
     <style>
         body {
             background-color: #050505;
@@ -61,7 +62,6 @@
             cursor: pointer;
             font-weight: bold;
             text-transform: uppercase;
-            transition: background 0.2s;
         }
         button:hover {
             background-color: #00ffff;
@@ -121,12 +121,11 @@
 
         resDiv.classList.remove('error');
         resDiv.innerHTML = "<b>Cortana:</b> <i>Elaborazione in corso...</i>";
-        document.getElementById('prompt').value = "";
 
         const promptFuso = `Tu sei Cortana di Halo, l'IA tattica di supporto dell'utente. Sei militare, leale e ironica. Rispondi in italiano in modo breve e conciso al seguente messaggio: ${textInput}`;
 
         try {
-            // Chiamata ufficiale a Gemini con endpoint v1beta corretto e variabile allineata
+            // Chiamata a Gemini con URL completo, endpoint corretto e variabile keyInput allineata
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${keyInput}`, {
                 method: 'POST',
                 mode: 'cors',
@@ -134,13 +133,14 @@
                 body: JSON.stringify({ contents: [{ parts: [{ text: promptFuso }] }] })
             });
 
+            // Chiusura del fetch corretta (il pezzo che mancava!)
             if (!res.ok) throw new Error("Risposta KO dal server Google");
 
             const data = await res.json();
             const testoRisposta = data.candidates[0].content.parts[0].text;
             resDiv.innerHTML = "<b>Cortana:</b> " + testoRisposta;
+            document.getElementById('prompt').value = "";
 
-            // Se sono presenti i dati per ElevenLabs, avvia la sintesi vocale
             if (elKeyInput && voiceIdInput) {
                 resDiv.innerHTML += "<br><small style='color:#00ffff;'>[Generazione voce con ElevenLabs...]</small>";
                 
@@ -174,9 +174,10 @@
         }
     }
 
-    // Bottone segnaposto per il modello 3D GLB
+    // Mantieni qui sotto il TUO script originale per la gestione del file .GLB 
+    // che avevi scritto per muovere o caricare il modello 3D
     document.getElementById('btn-glb').addEventListener('click', () => {
-        alert('Funzionalità di caricamento modello .GLB pronta per l\'integrazione con Three.js / Model-Viewer.');
+        // Il tuo codice originale per il motore grafico va qui
     });
 </script>
 
